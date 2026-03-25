@@ -1,0 +1,69 @@
+name: Build APK
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+    - name: Build APK
+      run: |
+        echo "android { compileSdk 34 }" > app/build.gradle
+        echo "apply plugin: 'com.android'" >> app/build.gradle
+        mkdir -p app/src/main/java/com/app
+        mkdir -p app/src/main/res/values
+        echo '<?xml version="1.0" encoding="utf-8"?>
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+        <application android:label="Attendance App">
+        <activity android:name=".MainActivity" android:exported="true">
+        <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity>
+        </application>
+        </manifest>' > app/src/main/AndroidManifest.xml
+        echo 'package com.app; import android.os.Bundle; import androidx.appcompat.app.AppCompatActivity; public class MainActivity extends AppCompatActivity { protected void onCreate(Bundle b) { super.onCreate(b); } }' > app/src/main/java/com/app/MainActivity.java
+        echo '<?xml version="1.0" encoding="utf-8"?>
+        <resources><color name="purple">#6200EE</color></resources>' > app/src/main/res/values/colors.xml
+        echo '<resources><string name="app_name">Attendance App</string></resources>' > app/src/main/res/values/strings.xml
+        echo '<?xml version="1.0" encoding="utf-8"?>
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+            package="com.app">
+            <application android:allowBackup="true"
+                android:icon="@mipmap/ic_launcher"
+                android:label="@string/app_name"
+                android:theme="@style/Theme.AppCompat.Light">
+                <activity android:name=".MainActivity" android:exported="true">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN" />
+                        <category android:name="android.intent.category.LAUNCHER" />
+                    </intent-filter>
+                </activity>
+            </application>
+        </manifest>' > app/src/main/AndroidManifest.xml
+        echo 'buildscript {
+            repositories { google(); mavenCentral() }
+            dependencies { classpath "com.android.tools.build:gradle:7.4.2" }
+        }
+        allprojects {
+            repositories { google(); mavenCentral() }
+        }' > build.gradle
+        echo 'include ":app"' > settings.gradle
+        echo 'android {
+            compileSdk 34
+            defaultConfig { applicationId "com.app" minSdk 21 targetSdk 34 versionCode 1 versionName "1.0" }
+        }
+        dependencies {
+            implementation "androidx.appcompat:appcompat:1.6.1"
+        }' > app/build.gradle
+        mkdir -p app/src/main/res/mipmap-hdpi
+        touch app/src/main/res/mipmap-hdpi/ic_launcher.png
+    - name: Upload APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: app-debug
+        path: app/build/outputs/apk/debug/*.apk
